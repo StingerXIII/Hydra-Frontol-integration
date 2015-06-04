@@ -2,8 +2,6 @@ function BeforeAct(AO, RO, E, O, CO)
 {
 	//AO.ShowMessage("Before zak "+RO.Pos.Count);
 	//AO.ShowMessage(RO.Payment.PayCode);
-	var req = new ActiveXObject("Microsoft.XMLHTTP");
-	var part2=0;
 
 	for(RO.Pos.Index=1;RO.Pos.Index<=RO.Pos.Count;RO.Pos.Index++){
 		if(RO.Pos.SummWD == null || RO.UserValues.Get("UAID_"+RO.Pos.Index) == null || RO.ReceiptTypeCode == null || RO.Pos.SummWD == "" || RO.UserValues.Get("UAID_"+RO.Pos.Index) == "" || RO.ReceiptTypeCode == ""){
@@ -13,86 +11,86 @@ function BeforeAct(AO, RO, E, O, CO)
 		else
 		{
 			//AO.ShowMessage(RO.UserValues.Get("UName_"+(RO.Pos.Index))+" - "+RO.Pos.SummWD);
-			req.onreadystatechange = function() {
-				//Обрабатываем ответ сервера
-                if(req.readyState==4 && req.status==200) {
-                    var obj = eval("("+req.responseText+")");
-                    if(obj.result != "OK") {
-                        part2 = 0;
-						AO.ShowMessage("Невозможно оплатить абоненту "+RO.UserValues.Get("UName_"+RO.Pos.Index));
-                        AO.Cancel();
-                    }
-				    else {
-                        part2 = 1;
-                    }
-                    //AO.ShowMessage(obj[0].q);
-                }
+			//parse xml function
+			ParseXML = function (xmltext) {
+				xmldoc = new ActiveXObject("Microsoft.XMLDOM");
+				xmldoc.async=false;
+				xmldoc.loadXML(xmltext);
+				return xmldoc;
 			}
-			// Посылаем запрос об оплате позиции в чеке a - сумма, b - идентификатор абонента N_ACCOUNT_ID
-			req.open("POST", "http://bill.st65.ru:8383/oplTest.php", false);
-			var parm = "a="+RO.Pos.SummWD+"&b="+RO.UserValues.Get("UAID_"+RO.Pos.Index)+"&c=k9110066&d="+RO.ReceiptTypeCode;
-			req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-			req.setRequestHeader("Content-length",parm.length);
-			req.send(parm);
-			//AO.ShowMessage(parm);
-
-
-			// Бывает возникает ситуация (неизвестно из-за чего), когда в биллинг передается parm = "" и платеж не проводится.
-			// Переменная part2 нужна, чтобы платеж не прошел через кассу,т.к. Cancel() не работает в функции req.onreadystatechange()
-			if(part2 == 1) {
-				var req1 = new ActiveXObject("Microsoft.XMLHTTP");
-				req1.onreadystatechange = function(){
-					//Обрабатываем ответ сервера
-					if(req1.readyState==4 && req1.status==200) {
-                        var obj = eval("("+req1.responseText+")");
-                        //AO.ShowMessage(obj[0]);
-                        RO.UserValues.Set("UBal_"+RO.Pos.Index,obj[0].N_SUM_BAL);
-                        switch (RO.UserValues.Get("UGID_" + RO.Pos.Index)) {
-                            case "50638901":
-                                RO.Pos.SetECRDepartment(1); //Сфера Телеком
-                                break;
-                            case "50639001":
-                                RO.Pos.SetECRDepartment(2); //Солнце Телеком
-                                break;
-                            case "50654901":
-                                RO.Pos.SetECRDepartment(3); //СолнцеГрупп Телеком
-                                break;
-                            case "2235433401":
-                                RO.Pos.SetECRDepartment(4); //Солнце ТВ
-                                break;
-                            case "2844439801":
-                                RO.Pos.SetECRDepartment(5); //Солнце Плюс
-                                break;
-                            case "930048701":
-                                RO.Pos.SetECRDepartment(6); //ИП Фрязинов
-                                break;
-                            case "3159475101":
-                                RO.Pos.SetECRDepartment(7); //Реклама
-                                break;
-                            case "4471074801":
-                                RO.Pos.SetECRDepartment(8); //Солнце
-                                break;
-                            case "4822228901":
-                                RO.Pos.SetECRDepartment(9); //Восход Телеком
-                                break;
-                        }
-                        // RO.Pos.SetECRDepartment(1);
-                        //AO.ShowMessage(RO.Pos.ECRDepartment);
-					}
+			GetTxnDate = function() {
+				var today = new Date();
+				var dd = today.getDate();
+				var mm = today.getMonth()+1; //January is 0!
+				var yyyy = today.getFullYear();
+				var hh24 = today.getHours();
+				var mi = today.getMinutes();
+				var ss = today.getSeconds();
+				if (hh24<10){
+				    hh24='0'+hh24
 				}
-					// Посылаем запрос о данных абонента после оплаты
-				req1.open("POST", "http://bill.st65.ru:8383/getusers.php", false);
-				var parm = "address="+RO.UserValues.Get("UAccount_"+RO.Pos.Index)+"&tp=l";
-				req1.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-				req1.setRequestHeader("Content-length",parm.length);
-				req1.send(parm);
-				//AO.ShowMessage(parm);
-				//AO.ShowMessage("Баланс " + RO.UserValues.Get("UBal_"+RO.Pos.Index));
+				if (mi<10){
+				    mi='0'+mi 
+				}
+				if (ss<10){
+				    ss='0'+ss
+				}
+				if(dd<10) {
+				    dd='0'+dd
+				} 
+				if(mm<10) {
+				    mm='0'+mm
+				} 
+				today = yyyy+mm+dd+hh24+mi+ss;
+				return today
+			}
+			// тест посылки запроса в hpd
+			var hpdcheck = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+			var check_params = "command=check&bank_code=KASSA&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD);
+			AO.ShowMessage(check_params);			
+			hpdcheck.open("GET", "http://bill.st65.ru:9080/hydra?"+check_params, false);
+			hpdcheck.send(null);		
+			if(hpdcheck.status == 200) {
+					AO.ShowMessage(hpdcheck.responseText);
 			}
 			else {
-				AO.ShowMessage("Платеж не прошел в биллинг! Повторите операцию.");
+				AO.ShowMessage("HPD check request failed with status code "+hpdcheck.status);
 				AO.Cancel();
 			}
+			// TODO: запилить проверку XML-респонса и условную отправку запроса на проведение платежа.
+			var hydra_check_response = ParseXML(hpdcheck.responseText);
+			var hydra_check_result = hydra_check_response.getElementsByTagName("result")[0].childNodes[0].nodeValue;
+			var hydra_check_comment = hydra_check_response.getElementsByTagName("comment")[0].childNodes[0].nodeValue;
+			var hydra_check_txn_id = hydra_check_response.getElementsByTagName("txn_id")[0].childNodes[0].nodeValue;
+			AO.ShowMessage("Result: "+hydra_check_result+" Comment: "+hydra_check_comment+" txn_id: "+hydra_check_txn_id);
+			if (hydra_check_result == 0) {
+				var txn_date = GetTxnDate();
+				var pay_params = "command=pay&bank_code=KASSA&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD)+"&txn_id="+hydra_check_txn_id+"&txn_date="+txn_date;
+				var hpdpay = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+				AO.ShowMessage(pay_params);
+				hpdpay.open("GET", "http://bill.st65.ru:9080/hydra?"+pay_params, false);
+				hpdpay.send(null);
+				if(hpdpay.status == 200) {
+					AO.ShowMessage(hpdpay.responseText);
+					var hydra_pay_response = ParseXML(hpdpay.responseText);
+					var hydra_pay_result = hydra_pay_response.getElementsByTagName("result")[0].childNodes[0].nodeValue;
+					var hydra_pay_txn_id = hydra_check_response.getElementsByTagName("txn_id")[0].childNodes[0].nodeValue;
+					if (hydra_pay_result == 0) {
+						AO.ShowMessage("Payment successfully approved with txn_id="+hydra_pay_txn_id);
+					}
+
+				}
+				else {
+					AO.ShowMessage("HPD pay request failed with status code "+hpdpay.status);
+					AO.Cancel();
+				}
+			}
+			else {
+				AO.ShowMessage("HPD check request failed with result: "+hydra_check_result+" "+hydra_check_comment);
+			}
+
+
+
 		}
 	}
 }
