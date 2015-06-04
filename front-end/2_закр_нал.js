@@ -46,9 +46,9 @@ function BeforeAct(AO, RO, E, O, CO)
 			}
 			// тест посылки запроса в hpd
 			var hpdcheck = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
-			var check_params = "command=check&bank_code=KASSA&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD);
+			var check_params = "command=check&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD);
 			AO.ShowMessage(check_params);			
-			hpdcheck.open("GET", "http://bill.st65.ru:9080/hydra?"+check_params, false);
+			hpdcheck.open("GET", "http://bill.st65.ru:9080/kassa_cash?"+check_params, false);
 			hpdcheck.send(null);		
 			if(hpdcheck.status == 200) {
 					AO.ShowMessage(hpdcheck.responseText);
@@ -65,10 +65,10 @@ function BeforeAct(AO, RO, E, O, CO)
 			AO.ShowMessage("Result: "+hydra_check_result+" Comment: "+hydra_check_comment+" txn_id: "+hydra_check_txn_id);
 			if (hydra_check_result == 0) {
 				var txn_date = GetTxnDate();
-				var pay_params = "command=pay&bank_code=KASSA&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD)+"&txn_id="+hydra_check_txn_id+"&txn_date="+txn_date;
+				var pay_params = "command=pay&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD)+"&txn_id="+hydra_check_txn_id+"&txn_date="+txn_date;
 				var hpdpay = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
 				AO.ShowMessage(pay_params);
-				hpdpay.open("GET", "http://bill.st65.ru:9080/hydra?"+pay_params, false);
+				hpdpay.open("GET", "http://bill.st65.ru:9080/kassa_cash?"+pay_params, false);
 				hpdpay.send(null);
 				if(hpdpay.status == 200) {
 					AO.ShowMessage(hpdpay.responseText);
