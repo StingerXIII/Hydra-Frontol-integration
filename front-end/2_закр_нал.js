@@ -1,8 +1,5 @@
 function BeforeAct(AO, RO, E, O, CO)
 {
-	//AO.ShowMessage("Before zak "+RO.Pos.Count);
-	//AO.ShowMessage(RO.Payment.PayCode);
-
 	for(RO.Pos.Index=1;RO.Pos.Index<=RO.Pos.Count;RO.Pos.Index++){
 		if(RO.Pos.SummWD == null || RO.UserValues.Get("UAID_"+RO.Pos.Index) == null || RO.ReceiptTypeCode == null || RO.Pos.SummWD == "" || RO.UserValues.Get("UAID_"+RO.Pos.Index) == "" || RO.ReceiptTypeCode == ""){
 			AO.ShowMessage("Невозможно оплатить абоненту (NULL). ОТМЕНА ОПЕРАЦИИ");
@@ -44,60 +41,92 @@ function BeforeAct(AO, RO, E, O, CO)
 				today = yyyy+mm+dd+hh24+mi+ss;
 				return today
 			}
-			// тест посылки запроса в hpd
-			var hpdcheck = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
-			var check_params = "command=check&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD);
-			AO.ShowMessage(check_params);			
-			hpdcheck.open("GET", "http://bill.st65.ru:9080/kassa_cash?"+check_params, false);
-			hpdcheck.send(null);		
-			if(hpdcheck.status == 200) {
-					AO.ShowMessage(hpdcheck.responseText);
-			}
-			else {
-				AO.ShowMessage("HPD check request failed with status code "+hpdcheck.status);
-				AO.Cancel();
-			}
-			// TODO: запилить проверку XML-респонса и условную отправку запроса на проведение платежа.
-			var hydra_check_response = ParseXML(hpdcheck.responseText);
-			var hydra_check_result = hydra_check_response.getElementsByTagName("result")[0].childNodes[0].nodeValue;
-			var hydra_check_comment = hydra_check_response.getElementsByTagName("comment")[0].childNodes[0].nodeValue;
-			var hydra_check_txn_id = hydra_check_response.getElementsByTagName("txn_id")[0].childNodes[0].nodeValue;
-			AO.ShowMessage("Result: "+hydra_check_result+" Comment: "+hydra_check_comment+" txn_id: "+hydra_check_txn_id);
-			if (hydra_check_result == 0) {
-				var txn_date = GetTxnDate();
-				var pay_params = "command=pay&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD)+"&txn_id="+hydra_check_txn_id+"&txn_date="+txn_date;
-				var hpdpay = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
-				AO.ShowMessage(pay_params);
-				hpdpay.open("GET", "http://bill.st65.ru:9080/kassa_cash?"+pay_params, false);
-				hpdpay.send(null);
-				if(hpdpay.status == 200) {
-					AO.ShowMessage(hpdpay.responseText);
-					var hydra_pay_response = ParseXML(hpdpay.responseText);
-					var hydra_pay_result = hydra_pay_response.getElementsByTagName("result")[0].childNodes[0].nodeValue;
-					var hydra_pay_txn_id = hydra_check_response.getElementsByTagName("txn_id")[0].childNodes[0].nodeValue;
-					if (hydra_pay_result == 0) {
-						AO.ShowMessage("Payment successfully approved with txn_id="+hydra_pay_txn_id);
-					}
 
+			ProcessHPD = function() {
+				var hpdcheck = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+				var check_params = "command=check&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD);
+				//AO.ShowMessage(check_params);			
+				hpdcheck.open("GET", "http://bill.st65.ru:9080/kassa_cash?"+check_params, false);
+				hpdcheck.send(null);	
+				if(hpdcheck.status == 200) {
+					//AO.ShowMessage(hpdcheck.responseText);
 				}
 				else {
-					AO.ShowMessage("HPD pay request failed with status code "+hpdpay.status);
+					AO.ShowMessage("HPD check request failed with status code "+hpdcheck.status);
 					AO.Cancel();
 				}
+				var hydra_check_response = ParseXML(hpdcheck.responseText);
+				var hydra_check_result = hydra_check_response.getElementsByTagName("result")[0].childNodes[0].nodeValue;
+				var hydra_check_comment = hydra_check_response.getElementsByTagName("comment")[0].childNodes[0].nodeValue;
+				var hydra_check_txn_id = hydra_check_response.getElementsByTagName("txn_id")[0].childNodes[0].nodeValue;
+				//AO.ShowMessage("Result: "+hydra_check_result+" Comment: "+hydra_check_comment+" txn_id: "+hydra_check_txn_id);
+				if (hydra_check_result == 0) {
+					//Предварительная проверка пройдена
+					var txn_date = GetTxnDate();
+					var pay_params = "command=pay&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD)+"&txn_id="+hydra_check_txn_id+"&txn_date="+txn_date;
+					var hpdpay = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+					//AO.ShowMessage(pay_params);
+					hpdpay.open("GET", "http://bill.st65.ru:9080/kassa_cash?"+pay_params, false);
+					hpdpay.send(null);
+					if(hpdpay.status == 200) {
+						//AO.ShowMessage(hpdpay.responseText);
+						var hydra_pay_response = ParseXML(hpdpay.responseText);
+						var hydra_pay_result = hydra_pay_response.getElementsByTagName("result")[0].childNodes[0].nodeValue;
+						var hydra_pay_txn_id = hydra_check_response.getElementsByTagName("txn_id")[0].childNodes[0].nodeValue;
+						if (hydra_pay_result == 0) {
+							//Успешный платеж
+							//AO.ShowMessage("Payment successfully approved with txn_id="+hydra_pay_txn_id);
+						}
+
+					}
+					else {
+							AO.ShowMessage("HPD pay request failed with status code "+hpdpay.status);
+							AO.Cancel();
+						 }
+				}
+				else {
+						AO.ShowMessage("HPD check request failed with result: "+hydra_check_result+" "+hydra_check_comment);
+						AO.Cancel();
+					 }	
 			}
-			else {
-				AO.ShowMessage("HPD check request failed with result: "+hydra_check_result+" "+hydra_check_comment);
+
+			ProcessStorno = function() {
+				var req = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+				req.open("POST", "http://bill.st65.ru:8383/process.php", false);
+				var parm = "sum="+RO.Pos.SummWD+"&account="+RO.UserValues.Get("UAID_"+RO.Pos.Index)+"&to_account=k9110066&doctype="+RO.ReceiptTypeCode;
+				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+				req.setRequestHeader("Content-length",parm.length);
+				req.send(parm);
+				//AO.ShowMessage(parm);
+				//Обрабатываем ответ сервера
+                if(req.status == 200) {
+                    var obj = eval("("+req.responseText+")");
+                    if(obj.result != "OK") {
+						AO.ShowMessage("Невозможно оплатить абоненту "+RO.UserValues.Get("UName_"+RO.Pos.Index));
+                        AO.Cancel();
+                    }
+					else {
+                        //Сторнирующий платеж успешно проведен
+                    }
+                }
 			}
 
-
-
+			switch(RO.ReceiptTypeCode)
+			{
+			    case 1: // ПРОДАЖА
+			      ProcessHPD();
+			      break;
+			    case 2: // ВОЗВРАТ
+			      ProcessStorno();
+			      break;
+			}
 		}
 	}
 }
 
 function AfterAct(AO, RO, E, O, CO)
 {
- //AO.ShowMessage("After zak");
+
 }
 
 function FuncAct(AO, RO, CO)
@@ -107,6 +136,7 @@ function FuncAct(AO, RO, CO)
 
 function NoAction(AO, RO, POS, CO, UserParam)
 {
+
 }
 
 
