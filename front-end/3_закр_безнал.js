@@ -42,6 +42,10 @@ function BeforeAct(AO, RO, E, O, CO)
 				return today
 			}
 
+			SetDept = function() {
+				RO.Pos.SetECRDepartment(10); // безнал всегда проводится в десятую секцию кассы
+			}
+
 			ProcessHPD = function() {
 				var hpdcheck = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
 				var check_params = "command=check&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD);
@@ -110,7 +114,7 @@ function BeforeAct(AO, RO, E, O, CO)
                     }
                 }
 			}
-
+			//Entry point right here:
 			switch(RO.ReceiptTypeCode)
 			{
 			    case 1: // ПРОДАЖА
@@ -120,6 +124,7 @@ function BeforeAct(AO, RO, E, O, CO)
 			      ProcessStorno();
 			      break;
 			}
+			SetDept();
 		}
 	}
 }

@@ -42,6 +42,37 @@ function BeforeAct(AO, RO, E, O, CO)
 				return today
 			}
 
+			SetDept = function() {
+			switch (RO.UserValues.Get("UGID_" + RO.Pos.Index)) {
+             case "50638901":
+                  RO.Pos.SetECRDepartment(1); //Сфера
+                  break;
+             case "50639001":
+                  RO.Pos.SetECRDepartment(2); //СолнцеТелеком
+                  break;
+             case "50654901":
+                  RO.Pos.SetECRDepartment(3); //Солнце Групп
+                  break;
+             case "2235433401":
+                  RO.Pos.SetECRDepartment(4); //Солнце ТВ
+                  break;
+             case "2844439801":
+                  RO.Pos.SetECRDepartment(5); //Солнце Плюс
+                  break;
+             case "930048701":
+                  RO.Pos.SetECRDepartment(6); //ИП Фрязинов
+                  break;
+             case "3159475101":
+                  RO.Pos.SetECRDepartment(7); //Реклама
+                  break;
+             case "4471074801":
+                  RO.Pos.SetECRDepartment(8); //Солнце
+                  break;
+             case "4822228901":
+                  RO.Pos.SetECRDepartment(9); //Восход Телеком
+                  break;
+			}
+
 			ProcessHPD = function() {
 				var hpdcheck = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
 				var check_params = "command=check&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD);
@@ -110,7 +141,7 @@ function BeforeAct(AO, RO, E, O, CO)
                     }
                 }
 			}
-
+			//Entry point right here:
 			switch(RO.ReceiptTypeCode)
 			{
 			    case 1: // ПРОДАЖА
@@ -120,6 +151,7 @@ function BeforeAct(AO, RO, E, O, CO)
 			      ProcessStorno();
 			      break;
 			}
+			SetDept();
 		}
 	}
 }
