@@ -42,8 +42,8 @@ function BeforeAct(AO, RO, E, O, CO)
 				return today
 			}
 
-			SetDept = function() {
-			switch (RO.UserValues.Get("UGID_" + RO.Pos.Index)) {
+			SetDept = function(gid) {
+				switch (gid) {
              case "50638901":
                   RO.Pos.SetECRDepartment(1); //Сфера
                   break;
@@ -71,6 +71,18 @@ function BeforeAct(AO, RO, E, O, CO)
              case "4822228901":
                   RO.Pos.SetECRDepartment(9); //Восход Телеком
                   break;
+				}
+			}
+
+			GetBalance = function() {
+				var req = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
+				req.open("POST", "http://bill.st65.ru:8383/getusers.php", false);
+				var parm = "address="+RO.UserValues.Get("UAccount_"+RO.Pos.Index)+"&tp=l";
+				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+				req.setRequestHeader("Content-length",parm.length);
+				req.send(parm);
+				var obj = eval("("+req.responseText+")");
+				return obj[0].N_SUM_BAL			
 			}
 
 			ProcessHPD = function() {
@@ -151,7 +163,10 @@ function BeforeAct(AO, RO, E, O, CO)
 			      ProcessStorno();
 			      break;
 			}
-			SetDept();
+			
+			RO.UserValues.Set("UBal_"+RO.Pos.Index,GetBalance());
+			//AO.ShowMessage("Баланс " + RO.UserValues.Get("UBal_"+RO.Pos.Index));
+			SetDept(RO.UserValues.Get("UGID_" + RO.Pos.Index));
 		}
 	}
 }
