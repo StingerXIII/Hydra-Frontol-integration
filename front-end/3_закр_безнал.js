@@ -94,10 +94,15 @@ function BeforeAct(AO, RO, E, O, CO)
 						//AO.ShowMessage(hpdpay.responseText);
 						var hydra_pay_response = ParseXML(hpdpay.responseText);
 						var hydra_pay_result = hydra_pay_response.getElementsByTagName("result")[0].childNodes[0].nodeValue;
-						var hydra_pay_txn_id = hydra_check_response.getElementsByTagName("txn_id")[0].childNodes[0].nodeValue;
+						var hydra_pay_txn_id = hydra_pay_response.getElementsByTagName("txn_id")[0].childNodes[0].nodeValue;
+						var hydra_pay_comment = hydra_pay_response.getElementsByTagName("comment")[0].childNodes[0].nodeValue;
 						if (hydra_pay_result == 0) {
 							//Успешный платеж
 							//AO.ShowMessage("Payment successfully approved with txn_id="+hydra_pay_txn_id);
+						}
+						else {
+							AO.ShowMessage("HPD pay request failed with result: "+hydra_pay_result+" "+hydra_pay_comment);
+							AO.Cancel();
 						}
 
 					}
