@@ -87,7 +87,7 @@ function BeforeAct(AO, RO, E, O, CO)
 
 			ProcessHPD = function() {
 				var hpdcheck = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
-				var check_params = "command=check&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD);
+				var check_params = "command=check&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD.toFixed(2));
 				//AO.ShowMessage(check_params);			
 				hpdcheck.open("GET", "http://bill.st65.ru:9080/kassa_cash?"+check_params, false);
 				hpdcheck.send(null);	
@@ -106,7 +106,7 @@ function BeforeAct(AO, RO, E, O, CO)
 				if (hydra_check_result == 0) {
 					//Предварительная проверка пройдена
 					var txn_date = GetTxnDate();
-					var pay_params = "command=pay&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD)+"&txn_id="+hydra_check_txn_id+"&txn_date="+txn_date;
+					var pay_params = "command=pay&to_account=KASSA_66&account="+encodeURIComponent(RO.UserValues.Get("UAccount_"+RO.Pos.Index))+"&sum="+encodeURIComponent(RO.Pos.SummWD.toFixed(2))+"&txn_id="+hydra_check_txn_id+"&txn_date="+txn_date;
 					var hpdpay = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
 					//AO.ShowMessage(pay_params);
 					hpdpay.open("GET", "http://bill.st65.ru:9080/kassa_cash?"+pay_params, false);
@@ -141,7 +141,7 @@ function BeforeAct(AO, RO, E, O, CO)
 			ProcessStorno = function() {
 				var req = new ActiveXObject("WinHttp.WinHttpRequest.5.1");
 				req.open("POST", "http://bill.st65.ru:8383/process.php", false);
-				var parm = "sum="+RO.Pos.SummWD+"&account="+RO.UserValues.Get("UAID_"+RO.Pos.Index)+"&to_account=k9110066&doctype="+RO.ReceiptTypeCode;
+				var parm = "sum="+RO.Pos.SummWD.toFixed(2)+"&account="+RO.UserValues.Get("UAID_"+RO.Pos.Index)+"&to_account=k9110066&doctype="+RO.ReceiptTypeCode;
 				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 				req.setRequestHeader("Content-length",parm.length);
 				req.send(parm);
